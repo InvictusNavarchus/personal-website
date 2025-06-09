@@ -1,27 +1,34 @@
 ---
 import { BlogPostDetailScreen } from '@/features/blog';
 import { defaultLanguage, type LanguageCode } from '@/i18n/ui';
-import { getCollection, getEntries, render } from 'astro:content';
+import { getCollection, getEntries, render, type CollectionEntry } from 'astro:content';
 
 let lang = defaultLanguage as LanguageCode;
 
+/**
+ * Generates static paths for blog post pages
+ * @returns Array of static paths with params and props
+ */
 export async function getStaticPaths() {
-  const blogEntries = await getCollection('blog', ({ data }) => {
+  const blogEntries = await getCollection('blog', ({ data }: CollectionEntry<'blog'>) => {
     return data.isDraft !== true && data.lang === defaultLanguage;
   });
-  return blogEntries.map((post) => ({
+  return blogEntries.map((post: CollectionEntry<'blog'>) => ({
     params: { slug: post.id },
     props: { post },
   }));
 }
-const { post } = Astro.props;
+const { post }: { post: CollectionEntry<'blog'> } = Astro.props;
 
 const baseRelatedPosts = post.data.relatedPosts
   ? await getEntries(post.data.relatedPosts)
   : [];
 
+/**
+ * Enriches related posts with reading time information from remark plugin
+ */
 const enrichedRelatedPostsPromises = baseRelatedPosts.map(
-  async (relatedEntry) => {
+  async (relatedEntry: CollectionEntry<'blog'>) => {
     if (!relatedEntry) return null;
     const { remarkPluginFrontmatter: relatedFm } = await render(relatedEntry);
     return {
